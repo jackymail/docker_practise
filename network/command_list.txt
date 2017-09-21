@@ -1,0 +1,17 @@
+1:docker network ls
+2:docker run -itd --name=networktest ubuntu
+3:docker network inspect bridge
+4:docker network disconnect bridge networktest
+5:docker network create -d bridge my_brige
+6:docker network ls
+7:docker network inspect my_brige
+8:docker run -d --net=mybrige --name db training/postgress
+9:docker inspect --format='{{json.NetworkSettings.Networks}}' db
+10:docker run -d --name web trainning/webapp python app.py
+11:docker inspect --format='{{json.NetworkSettings.Network}}' web
+12:docker exect -it db bash
+   ping bash (failed)
+13:docker network connect my_bridge web
+14:docker exec -it
+    ping web
+
