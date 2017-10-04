@@ -1,0 +1,19 @@
+关键步骤：创建一个overlaynetwork net
+然后在创建wordpress 服务 和 wordpress db服务时指定使用的network时net1
+docker service create \
+           --replicas 1 \
+           --name wordpressdb \
+           --network net1 \
+           --env MYSQL_ROOT_PASSWORD=mysql123 \
+           --env MYSQL_DATABASE=wordpress \
+          mysql:latest
+
+
+
+docker service create \
+           --replicas 4 \
+           --name wordpressapp \
+           --network net1 \
+           --env WORDPRESS_DB_HOST=wordpressdb \
+           --env WORDPRESS_DB_PASSWORD=mysql123 \
+          wordpress:latest

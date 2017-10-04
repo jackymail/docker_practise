@@ -1,0 +1,127 @@
+warm init 
+Error response from daemon: could not choose an IP address to advertise since this system has multiple addresses on different interfaces (10.0.2.15 on eth0 and 192.168.99.100 on eth1) - specify one with --advertise-addr
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker swarm init --advertise-addr=192.168.99.100
+Swarm initialized: current node (8i2bnquc6okrt9hrzqj4xre1s) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-2fa03e2efzmjrgkevzup3i66bwmv5kq8yibzrmf93t77vj4a7g-c9byo1fw1mclfel9p58li54ct 192.168.99.100:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker-machine start worker
+Starting "worker"...
+Machine "worker" is already running.
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker-machine ls
+NAME      ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
+default   *        virtualbox   Running   tcp://192.168.99.100:2376           v17.09.0-ce   
+worker    -        virtualbox   Running   tcp://192.168.99.101:2376           Unknown       Unable to query docker version: Get https://192.168.99.101:2376/v1.15/version: x509: certificate is valid for 192.168.99.103, not 192.168.99.101
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker-machine ssh worker "docker swarm join --token SWMTKN-1-2fa03e2efzmjrgkevzup3i66bwmv5kq8yibzrmf93t77vj4a7g-c9byo1fw1mclfel9p58li54ct 192.168.99.100:2377"
+Error response from daemon: This node is already part of a swarm. Use "docker swarm leave" to leave this swarm and join another one.
+exit status 1
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker-machine ssh worker "docker swarm leave"
+Node left the swarm.
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker-machine ssh worker "docker swarm join --token SWMTKN-1-2fa03e2efzmjrgkevzup3i66bwmv5kq8yibzrmf93t77vj4a7g-c9byo1fw1mclfel9p58li54ct 192.168.99.100:2377"
+This node joined a swarm as a worker.
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
+8i2bnquc6okrt9hrzqj4xre1s *   default             Ready               Active              Leader
+iegmxx5190k3u7mkbni6z3eqi     worker              Ready               Active              
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker network create -d overlay net1
+n9gm207p5ldiiq9ilirll8p52
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+b033b76b5539        bridge              bridge              local
+527609ca342a        docker_gwbridge     bridge              local
+2c3db48046d6        host                host                local
+pekr6ze3r50f        ingress             overlay             swarm
+af7ad5a2fdad        my_bridge           bridge              local
+n9gm207p5ldi        net1                overlay             swarm
+0c576048b52e        none                null                local
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker service create \
+>            --replicas 1 \
+>            --name wordpressdb \
+>            --network net1 \
+>            --env MYSQL_ROOT_PASSWORD=mysql123 \
+>            --env MYSQL_DATABASE=wordpress \
+>           mysql:latest
+8xzfodtehk6wtv0qnfde3o9fz
+Since --detach=false was not specified, tasks will be created in the background.
+In a future release, --detach=false will become the default.
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+8xzfodtehk6w        wordpressdb         replicated          0/1                 mysql:latest        
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker service ps wordpressdb
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+vdqrivm8gmj0        wordpressdb.1       mysql:latest        default             Running             Running 5 seconds ago                       
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker service create \
+>            --replicas 4 \
+>            --name wordpressapp \
+>            --network net1 \
+>            --env WORDPRESS_DB_HOST=wordpressdb \
+>            --env WORDPRESS_DB_PASSWORD=mysql123 \
+>           wordpress:latest
+kvs6iycwbvyok3mw30epswjir
+Since --detach=false was not specified, tasks will be created in the background.
+In a future release, --detach=false will become the default.
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+8xzfodtehk6w        wordpressdb         replicated          1/1                 mysql:latest        
+kvs6iycwbvyo        wordpressapp        replicated          0/4                 wordpress:latest    
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+0559b11fb9ed        mysql:latest        "docker-entrypoint..."   41 seconds ago      Up 40 seconds       3306/tcp            wordpressdb.1.vdqrivm8gmj0kdmikg1it2oc5
+f5c8e8ca948c        busybox             "sh"                     About an hour ago   Up About an hour                        container2
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# 
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker exec -it e71 ping wordpressapp
+Error: No such container: e71
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker exec -it 0559b11fb9ed ping wordpressapp
+PING wordpressapp (10.0.0.4): 56 data bytes
+64 bytes from 10.0.0.4: icmp_seq=0 ttl=64 time=0.040 ms
+64 bytes from 10.0.0.4: icmp_seq=1 ttl=64 time=0.067 ms
+64 bytes from 10.0.0.4: icmp_seq=2 ttl=64 time=0.069 ms
+64 bytes from 10.0.0.4: icmp_seq=3 ttl=64 time=0.085 ms
+64 bytes from 10.0.0.4: icmp_seq=4 ttl=64 time=0.068 ms
+64 bytes from 10.0.0.4: icmp_seq=5 ttl=64 time=0.084 ms
+64 bytes from 10.0.0.4: icmp_seq=6 ttl=64 time=0.066 ms
+64 bytes from 10.0.0.4: icmp_seq=7 ttl=64 time=0.068 ms
+^C--- wordpressapp ping statistics ---
+8 packets transmitted, 8 packets received, 0% packet loss
+round-trip min/avg/max/stddev = 0.040/0.068/0.085/0.000 ms
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+04b5f1d9c51a        wordpress:latest    "docker-entrypoint..."   3 minutes ago       Up 3 minutes        80/tcp              wordpressapp.3.32dhc9sfar688v1i5guiahru0
+96988ded1a3f        wordpress:latest    "docker-entrypoint..."   3 minutes ago       Up 3 minutes        80/tcp              wordpressapp.1.s8bltu6fv4z6ch863z7ul44at
+0559b11fb9ed        mysql:latest        "docker-entrypoint..."   4 minutes ago       Up 4 minutes        3306/tcp            wordpressdb.1.vdqrivm8gmj0kdmikg1it2oc5
+f5c8e8ca948c        busybox             "sh"                     About an hour ago   Up About an hour                        container2
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker exec -it f5c8e8ca948c ping wordpressapp
+PING wordpressapp (218.205.57.154): 56 data bytes
+^C
+--- wordpressapp ping statistics ---
+20 packets transmitted, 0 packets received, 100% packet loss
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker exec -it 0559b11fb9ed ping wordpressapp
+PING wordpressapp (10.0.0.4): 56 data bytes
+64 bytes from 10.0.0.4: icmp_seq=0 ttl=64 time=0.039 ms
+64 bytes from 10.0.0.4: icmp_seq=1 ttl=64 time=0.068 ms
+^C--- wordpressapp ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+yangzhiqiongs-MacBook-Pro:wordpress_mysql root# docker exec -it 0559b11fb9ed ping wordpressapp
+
+
+
+
+
+
+
+
